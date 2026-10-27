@@ -1,32 +1,18 @@
-FROM --platform=$BUILDPLATFORM golang:1.27.3 AS go_builder
+FROM golang:1.27.3 AS go_builder
 WORKDIR /go/src/github.com/percona/percona-backup-mongodb
 
 ARG GIT_COMMIT
 ARG GIT_BRANCH
 ARG BUILD_TIME
-ARG TARGETARCH
-ARG CGO_ENABLED=1
 
-RUN if [ "$TARGETARCH" = "amd64" ]; then \
-        export PKG=gcc-x86-64-linux-gnu; \
-    elif [ "$TARGETARCH" = "arm64" ]; then \
-        export PKG=gcc-aarch64-linux-gnu; \
-    fi && \
-    dpkg --add-architecture $TARGETARCH && \
-    apt-get update && apt-get install -y libkrb5-dev:$TARGETARCH $PKG
+RUN apt-get update && apt-get install -y libkrb5-dev
 
 COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
 
-RUN if [ "$TARGETARCH" = "amd64" ]; then \
-        export CC=x86_64-linux-gnu-gcc; \
-    elif [ "$TARGETARCH" = "arm64" ]; then \
-        export CC=aarch64-linux-gnu-gcc; \
-    fi && \
-    export CGO_ENABLED=$CGO_ENABLED && \
-    make build-all
+RUN make build-all
 
 FROM percona/percona-backup-mongodb:2.17.0
 
