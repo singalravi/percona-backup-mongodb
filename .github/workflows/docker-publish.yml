@@ -1,6 +1,8 @@
 name: Build and publish Docker image
 
 on:
+  release:
+    types: [published]
   workflow_dispatch:
     inputs:
       tag:
@@ -10,6 +12,7 @@ on:
 
 env:
   IMAGE: singalravi/percona-backup-mongodb
+  TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || inputs.tag }}
 
 jobs:
   build:
@@ -85,9 +88,9 @@ jobs:
         working-directory: /tmp/digests
         run: |
           docker buildx imagetools create \
-            -t ${{ env.IMAGE }}:${{ inputs.tag }} \
+            -t ${{ env.IMAGE }}:${{ env.TAG }} \
             $(printf '${{ env.IMAGE }}@sha256:%s ' *)
 
       - name: Inspect image
         run: |
-          docker buildx imagetools inspect ${{ env.IMAGE }}:${{ inputs.tag }}
+          docker buildx imagetools inspect ${{ env.IMAGE }}:${{ env.TAG }}
